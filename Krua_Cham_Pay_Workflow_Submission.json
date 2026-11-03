@@ -1,0 +1,101 @@
+{
+  "name": "Krua Cham Pay - LINE Bot (Self-hosted)",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "\nconst input = $input.first().json;\nconst raw = input.body;\n\nconst payload = typeof raw === 'string'\n  ? JSON.parse(raw)\n  : raw;\n\nconst event = payload?.events?.[0];\n\nif (\n  event?.type !== 'message' ||\n  event?.message?.type !== 'text' ||\n  !event?.replyToken\n) {\n  return [];\n}\n\nconst question = event.message.text.trim();\nconst q = question.replace(/\\s+/g, '').toLowerCase();\n\nlet answer = '';\n\nconst menu = `ร้านคั่วชามเปลมีเมนูดังนี้ค่ะ\n1) คั่วไก่ 80 บาท\n2) คั่วทะเล (พิเศษ) 130 บาท\n3) โจ๊กหมู (ธรรมดา) 60 บาท\n4) ปาท่องโก๋ 8 บาท\n5) โจ๊กหมูใส่ไข่ (ธรรมดา) 65 บาท`;\n\n// 1. ตรวจเมนูที่มีข้อมูลก่อน\nif (q.includes('คั่วทะเล')) {\n  answer = 'คั่วทะเล (พิเศษ) ราคา 130 บาทค่ะ';\n\n} else if (q.includes('คั่วไก่')) {\n  answer = 'คั่วไก่ ราคา 80 บาทค่ะ';\n\n} else if (q.includes('ปาท่องโก๋')) {\n  answer = 'ปาท่องโก๋ ราคา 8 บาทค่ะ';\n\n} else if (q.includes('โจ๊ก') && q.includes('ไข่')) {\n  answer = 'โจ๊กหมูใส่ไข่ (ธรรมดา) ราคา 65 บาทค่ะ';\n\n} else if (q.includes('โจ๊ก')) {\n  answer = 'มีค่ะ โจ๊กหมูธรรมดา 60 บาท และโจ๊กหมูใส่ไข่ธรรมดา 65 บาทค่ะ';\n\n// 2. ตรวจการขอดูเมนูทั้งหมด\n} else if (\n  /^(ขอ)?(ดู|ขอดู)?เมนู(อาหาร)?(ทั้งหมด|หน่อย|มีอะไรบ้าง)?(ครับ|ค่ะ)?$/.test(q) ||\n  q.includes('รายการอาหาร') ||\n  q.includes('อาหารมีอะไรบ้าง')\n) {\n  answer = menu;\n\n// 3. ตรวจคำทักทาย\n} else if (/สวัสดี|หวัดดี|hello|^hi$/.test(q)) {\n  answer = 'สวัสดีค่ะ ยินดีต้อนรับสู่ร้านคั่วชามเปล 😊 พิมพ์ \"ขอเมนูอาหาร\" เพื่อดูเมนูได้เลยค่ะ';\n\n// 4. ไม่มีข้อมูล\n} else {\n  answer = 'ขออภัยค่ะ ยังไม่มีข้อมูลเมนูนี้ในรายการที่ใช้สำหรับการสอบ สามารถสอบถามเมนูอื่นได้ค่ะ';\n}\n\nreturn [{\n  json: {\n    replyToken: event.replyToken,\n    answer\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        -16
+      ],
+      "id": "96e23b05-2e14-43b1-b9b2-3b51b8383f35",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "replyToken",
+              "value": "={{ $json.replyToken }}"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{ type: \"text\", text: $json.answer }] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -192,
+        -32
+      ],
+      "id": "667fd9cd-a946-4842-81f4-fcfd6e109e35",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "line-bot",
+        "options": {
+          "rawBody": true,
+          "responseCode": {
+            "values": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        -32
+      ],
+      "id": "7fbf6c59-7858-49f8-895b-9924c9d8e5be",
+      "name": "Webhook",
+      "webhookId": "2d4ae23d-ebab-4337-9da1-adf61f51b486"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
